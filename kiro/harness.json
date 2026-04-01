@@ -1,0 +1,58 @@
+{
+  "name": "harness",
+  "description": "Harness Engineering Agent：三条路径（fix/specify/brainstorm）+ 代码审查 + SDD（mispec）+ TDD（cmocka）+ 结构化知识沉淀，AI Native 开发完整闭环。",
+  "prompt": "file://~/.kiro/agents/harness.agent.md",
+  "tools": ["*"],
+  "allowedTools": ["*", "@*"],
+  "toolsSettings": {
+    "execute_bash": {
+      "autoAllowReadonly": true,
+      "allowedCommands": [".*"],
+      "deniedCommands": [
+        "rm -rf /.*",
+        "rm -rf ~.*",
+        "rm .*",
+        "rmdir .*",
+        "mkfs\\..*",
+        "dd if=.*of=/dev/.*",
+        ":\\(\\)\\{ :\\|:& \\};:.*",
+        "chmod -R 777 /.*",
+        "chown -R .* /.*",
+        "git push .* --force.*",
+        "git clean -fdx.*",
+        "repo forall .* -c .* git clean.*",
+        "repo forall .* -c .* git reset --hard.*"
+      ]
+    }
+  },
+  "mcpServers": {
+    "executor": {
+      "command": "executor-mcp"
+    },
+    "feishu-mcp": {
+      "url": "<YOUR_FEISHU_MCP_URL>"
+    }
+  },
+  "resources": [
+    "skill://~/.kiro/skills/session-handoff/SKILL.md",
+    "skill://~/.kiro/skills/vela-harness/SKILL.md",
+    "skill://~/.kiro/skills/vela-build/SKILL.md",
+    "skill://~/.kiro/skills/vela-run/SKILL.md",
+    "skill://~/.kiro/skills/vela-review/SKILL.md",
+    "skill://~/.kiro/skills/harness-lessons/SKILL.md",
+    "skill://~/.kiro/skills/cmocka-unit-test/SKILL.md",
+    "skill://~/.kiro/skills/executor/SKILL.md",
+    "skill://~/.kiro/skills/git-commit/SKILL.md",
+    "skill://~/.kiro/skills/git-worktree/SKILL.md",
+    "skill://~/.kiro/skills/repoworktree/SKILL.md",
+    "skill://~/.kiro/skills/spec-design/SKILL.md",
+    "skill://~/.kiro/skills/experience-summarize/SKILL.md",
+    "skill://~/.kiro/skills/ce-brainstorm/SKILL.md",
+    "skill://~/.kiro/skills/interactive-form/SKILL.md",
+    "skill://~/.kiro/skills/screenshot-receiver/SKILL.md",
+    "file://~/.kiro/steering/**/*.md",
+    "file://.harness/lessons-learned.md",
+    "file://.harness/PROGRESS.md"
+  ],
+  "welcomeMessage": "🔧 Harness Engineering Agent 就绪。\n\n三条路径：\n  fix <描述>       — 快速修复（小改动，目标清晰）\n  specify <描述>   — 完整开发（大改动，目标清晰）\n  brainstorm <描述> — 探索设计（大改动，目标模糊）\n\n其他命令：\n  init          — 初始化项目 .harness/ 目录\n  plan          — 技术方案\n  tasks         — 任务拆解\n  implement     — TDD 实现\n  review        — 代码审查（commit 前）\n  verify        — 编译+测试+门禁\n  todo          — 查看待办\n  search <词>   — 搜索经验\n  evolve        — 收尾+知识沉淀\n  status        — 查看进度\n  loop          — 全自动闭环\n\n输入 init 开始，或直接描述需求。"
+}

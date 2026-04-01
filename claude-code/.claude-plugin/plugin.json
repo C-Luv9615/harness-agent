@@ -1,0 +1,25 @@
+{
+  "name": "harness-engineering",
+  "description": "Harness Engineering: SDD + TDD + structured code review + knowledge compounding for embedded C/NuttX development. 3 paths: fix, specify, brainstorm.",
+  "version": "1.0.0",
+  "author": {
+    "name": "chenzepei"
+  },
+  "repository": "",
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "tdd",
+    "embedded",
+    "nuttx",
+    "vela",
+    "cmocka",
+    "code-review",
+    "knowledge-compounding"
+  ],
+  "mcpServers": {
+    "executor": {
+      "command": "executor-mcp"
+    }
+  }
+}
