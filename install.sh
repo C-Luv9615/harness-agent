@@ -3,17 +3,38 @@ set -e
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_DIR="$REPO_DIR/skills"
+OPENCODE_SRC_DIR="$REPO_DIR/opencode"
 
 usage() {
-  echo "Usage: $0 --target <kiro-cli|claude> [--update]"
+  echo "Usage: $0 --target <kiro-cli|claude|opencode> [--update]"
+  echo "       $0 --kiro-cli|--claude|--opencode [--update]"
   echo ""
   echo "Install or update Harness Engineering Agent."
   echo ""
   echo "Options:"
   echo "  --target kiro-cli    Install to ~/.kiro/ (agents + skills)"
-  echo "  --target claude      Install to ~/.claude/ (plugin + skills)"
+  echo "  --target claude      Install Claude Code plugin"
+  echo "  --target opencode    Install to ~/.config/opencode/"
+  echo "  --kiro-cli           Shorthand for --target kiro-cli"
+  echo "  --claude             Shorthand for --target claude"
+  echo "  --opencode           Shorthand for --target opencode"
   echo "  --update             Pull latest from git and re-install"
   exit 1
+}
+
+link_file() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  [ -L "$dst" ] || [ -f "$dst" ] && rm -f "$dst"
+  ln -s "$src" "$dst"
+}
+
+copy_if_missing() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [ ! -e "$dst" ]; then
+    cp "$src" "$dst"
+  fi
 }
 
 TARGET=""
@@ -21,6 +42,9 @@ UPDATE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --target) TARGET="$2"; shift 2 ;;
+    --kiro-cli|--kiro) TARGET="kiro-cli"; shift ;;
+    --claude|--claude-code) TARGET="claude"; shift ;;
+    --opencode) TARGET="opencode"; shift ;;
     --update) UPDATE=true; shift ;;
     *) usage ;;
   esac
@@ -125,10 +149,62 @@ install_claude() {
   echo "   直接启动 claude 即可（插件已全局注册）"
 }
 
+# ─── OpenCode ────────────────────────────────────────────────
+install_opencode() {
+  local OPENCODE_DIR="${HOME}/.config/opencode"
+  local PLUGIN_PACKAGE="@opencode-ai/plugin@1.3.17"
+  echo "🔧 Installing Harness Agent for OpenCode ..."
+  echo ""
+
+  mkdir -p "$OPENCODE_DIR/agents" "$OPENCODE_DIR/commands" "$OPENCODE_DIR/skills"
+
+  local src_file
+  for src_file in "$OPENCODE_SRC_DIR/agents"/*; do
+    link_file "$src_file" "$OPENCODE_DIR/agents/$(basename "$src_file")"
+  done
+  echo "   ✅ agents"
+
+  for src_file in "$OPENCODE_SRC_DIR/commands"/*; do
+    link_file "$src_file" "$OPENCODE_DIR/commands/$(basename "$src_file")"
+  done
+  echo "   ✅ commands"
+
+  local skill_dir skill_name
+  for skill_dir in "$OPENCODE_SRC_DIR/skills"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    skill_dir="${skill_dir%/}"
+    if [ -L "$OPENCODE_DIR/skills/$skill_name" ] || [ -d "$OPENCODE_DIR/skills/$skill_name" ]; then
+      rm -rf "$OPENCODE_DIR/skills/$skill_name"
+    fi
+    ln -s "$skill_dir" "$OPENCODE_DIR/skills/$skill_name"
+  done
+  echo "   ✅ skills ($(ls -d "$OPENCODE_SRC_DIR/skills"/*/ | wc -l | tr -d ' ') linked)"
+
+  copy_if_missing "$OPENCODE_SRC_DIR/opencode.json" "$OPENCODE_DIR/opencode.json"
+  copy_if_missing "$OPENCODE_SRC_DIR/.gitignore" "$OPENCODE_DIR/.gitignore"
+  copy_if_missing "$OPENCODE_SRC_DIR/package.json" "$OPENCODE_DIR/package.json"
+  echo "   ✅ config templates"
+
+  if [ "${HARNESS_SKIP_PLUGIN_INSTALL:-0}" = "1" ]; then
+    echo "   ⏭️  plugin install skipped (HARNESS_SKIP_PLUGIN_INSTALL=1)"
+  elif command -v npm &>/dev/null; then
+    (cd "$OPENCODE_DIR" && npm install "$PLUGIN_PACKAGE") >/dev/null 2>&1 \
+      && echo "   ✅ OpenCode plugin installed ($PLUGIN_PACKAGE)" \
+      || echo "   ⚠️  npm install failed, run manually: (cd $OPENCODE_DIR && npm install $PLUGIN_PACKAGE)"
+  else
+    echo "   ⚠️  npm not found, run manually: (cd $OPENCODE_DIR && npm install $PLUGIN_PACKAGE)"
+  fi
+
+  echo ""
+  echo "✅ OpenCode 安装完成"
+  echo "   opencode"
+}
+
 # ─── Dispatch ───────────────────────────────────────────────
 echo ""
 case "$TARGET" in
   kiro-cli|kiro) install_kiro ;;
   claude|claude-code) install_claude ;;
+  opencode) install_opencode ;;
   *) echo "❌ Unknown target: $TARGET"; usage ;;
 esac

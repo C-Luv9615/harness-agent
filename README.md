@@ -6,7 +6,7 @@ AI-driven development workflow for embedded C/NuttX projects. Combines SDD (Spec
 
 ```
 harness-agent/
-├── install.sh              ← 一键安装（支持 kiro-cli / claude）
+├── install.sh              ← 一键安装（支持 kiro-cli / claude / opencode）
 ├── skills/                 ← 共享 skill（两个平台通用，19 个）
 │   ├── session-handoff/
 │   ├── vela-harness/
@@ -22,6 +22,12 @@ harness-agent/
 │   ├── AGENTS.md
 │   ├── commands/           # 斜杠命令（/fix, /specify, /brainstorm...）
 │   └── LICENSE
+├── opencode/               ← OpenCode 配置
+│   ├── agents/
+│   ├── commands/
+│   ├── skills/
+│   ├── opencode.json
+│   └── package.json
 └── README.md
 ```
 
@@ -36,12 +42,15 @@ bash install.sh --target kiro-cli
 
 # Claude Code 用户
 bash install.sh --target claude
+
+# OpenCode 用户
+bash install.sh --opencode
 ```
 
 更新到最新版：
 
 ```bash
-bash install.sh --target <kiro-cli|claude> --update
+bash install.sh --target <kiro-cli|claude|opencode> --update
 ```
 
 `--update` 会 `git pull` 最新代码并重新安装，kiro 的飞书 MCP URL 会自动保留。
@@ -50,7 +59,9 @@ Kiro 安装：symlink skills 到 `~/.kiro/skills/`，复制 agent 配置到 `~/.
 
 Claude 安装：symlink 共享 skills 到 `claude-code/skills`，自动注册为全局插件，之后直接启动 `claude` 即可。
 
-两个平台共享同一份 skills，改一处两边生效。
+OpenCode 安装：symlink agents/commands/skills 到 `~/.config/opencode/`，初始化 `opencode.json` / `.gitignore` / `package.json`，并尝试安装 `@opencode-ai/plugin`。
+
+三个平台共享同一份 skills 体系，改一处同步生效。
 
 ## Philosophy
 
