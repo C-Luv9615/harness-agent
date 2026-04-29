@@ -29,6 +29,34 @@ link_file() {
   ln -s "$src" "$dst"
 }
 
+link_dir() {
+  local src="$1" dst="$2"
+  mkdir -p "$(dirname "$dst")"
+  if [ -L "$dst" ]; then
+    unlink "$dst"
+  elif [ -e "$dst" ]; then
+    rm -rf "$dst"
+  fi
+  ln -s "$src" "$dst"
+}
+
+link_shared_skills() {
+  local dst_root="$1"
+  local skill_dir skill_name count=0
+  mkdir -p "$dst_root"
+
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    [ -d "$skill_dir" ] || continue
+    [ -f "$skill_dir/SKILL.md" ] || continue
+    skill_name="$(basename "$skill_dir")"
+    skill_dir="${skill_dir%/}"
+    link_dir "$skill_dir" "$dst_root/$skill_name"
+    count=$((count + 1))
+  done
+
+  echo "   ✅ skills ($count linked from $SKILLS_DIR)"
+}
+
 copy_if_missing() {
   local src="$1" dst="$2"
   mkdir -p "$(dirname "$dst")"
@@ -86,14 +114,8 @@ if url and '<YOUR_' not in url: print(url)
   cp "$REPO_DIR/kiro/harness.json" "$AGENT_FILE"
   echo "   ✅ harness.json"
 
-  # Skills — symlink
-  for skill_dir in "$SKILLS_DIR"/*/; do
-    local skill_name="$(basename "$skill_dir")"
-    local dest="$KIRO_DIR/skills/$skill_name"
-    if [ -L "$dest" ]; then unlink "$dest"; fi
-    ln -s "$skill_dir" "$dest"
-  done
-  echo "   ✅ skills ($(ls -d "$SKILLS_DIR"/*/ | wc -l) linked)"
+  # Skills — symlink from unified source: $REPO_DIR/skills
+  link_shared_skills "$KIRO_DIR/skills"
 
   # Feishu MCP — restore old URL or ask
   if [ -n "$OLD_URL" ]; then
@@ -137,6 +159,10 @@ install_claude() {
   ln -s ../skills "$CLAUDE_DIR/skills"
   echo "   ✅ skills → ../skills"
 
+  # Also expose skills in Claude Code global skills directory.
+  # This keeps Claude aligned with OpenCode/Kiro: all skills point to $REPO_DIR/skills.
+  link_shared_skills "${HOME}/.claude/skills"
+
   # Register as global plugin
   if command -v claude &>/dev/null; then
     claude plugin add "$CLAUDE_DIR" 2>&1 && echo "   ✅ Plugin registered globally" || echo "   ⚠️  Registration failed, use: claude --plugin-dir $CLAUDE_DIR"
@@ -169,16 +195,8 @@ install_opencode() {
   done
   echo "   ✅ commands"
 
-  local skill_dir skill_name
-  for skill_dir in "$OPENCODE_SRC_DIR/skills"/*/; do
-    skill_name="$(basename "$skill_dir")"
-    skill_dir="${skill_dir%/}"
-    if [ -L "$OPENCODE_DIR/skills/$skill_name" ] || [ -d "$OPENCODE_DIR/skills/$skill_name" ]; then
-      rm -rf "$OPENCODE_DIR/skills/$skill_name"
-    fi
-    ln -s "$skill_dir" "$OPENCODE_DIR/skills/$skill_name"
-  done
-  echo "   ✅ skills ($(ls -d "$OPENCODE_SRC_DIR/skills"/*/ | wc -l | tr -d ' ') linked)"
+  # Skills — symlink from unified source: $REPO_DIR/skills
+  link_shared_skills "$OPENCODE_DIR/skills"
 
   copy_if_missing "$OPENCODE_SRC_DIR/opencode.json" "$OPENCODE_DIR/opencode.json"
   copy_if_missing "$OPENCODE_SRC_DIR/.gitignore" "$OPENCODE_DIR/.gitignore"
